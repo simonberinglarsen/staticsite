@@ -8,51 +8,52 @@
 
     <style>
         body {
-            z-index: 1;
-            /* stays above snow */
-            position: relative;
             margin: 0;
             padding: 0;
-            background: #444;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            font-family: Arial, Helvetica, sans-serif;
             text-align: center;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(to bottom, #0b1a2a, #0f253b, #1a4060);
         }
 
-        .image-wrapper {
-            height: 80vh;
-            /* keeps room for text below */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        img {
-            border-radius: 1rem;
+        #aurora {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            width: auto;
-            box-shadow: 0 1rem 1rem rgba(0, 0, 0, 0.5);
-            background: white;
-            object-fit: contain;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 40% 120%, rgba(0, 255, 160, 0.55), transparent 65%),
+                radial-gradient(ellipse at 70% 110%, rgba(180, 70, 255, 0.50), transparent 60%),
+                radial-gradient(ellipse at 20% 130%, rgba(255, 60, 200, 0.45), transparent 65%),
+                radial-gradient(ellipse at 85% 140%, rgba(255, 150, 80, 0.35), transparent 70%),
+                radial-gradient(ellipse at 55% 125%, rgba(0, 200, 255, 0.40), transparent 70%);
+            filter: blur(65px);
+            mix-blend-mode: screen;
+            animation: auroraMove 4s ease-in-out infinite alternate;
         }
 
-        .title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-top: 1rem;
-            letter-spacing: 1px;
-            color: #fff;
-        }
+        @keyframes auroraMove {
+            0% {
+                transform: translateX(-40px) translateY(0) scale(1);
+                opacity: 0.85;
+            }
 
-        .subtitle {
-            font-size: 1.2rem;
-            margin-top: 0.2rem;
-            color: #fff;
-            letter-spacing: 0.5px;
+            50% {
+                transform: translateX(30px) translateY(-35px) scale(1.12);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(-20px) translateY(-60px) scale(1.18);
+                opacity: 0.9;
+            }
         }
 
         #snow-canvas {
@@ -60,22 +61,174 @@
             top: 0;
             left: 0;
             pointer-events: none;
-            z-index: 0;
-            /* behind content */
+            z-index: 1;
         }
+
+        #foreground {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-wrapper {
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        img {
+            border-radius: 4rem;
+            height: 100%;
+            width: auto;
+            box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.5);
+            background: rgb(2, 2, 2);
+            object-fit: contain;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-1rem);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 1rem;
+            letter-spacing: 1px;
+            color: #fff;
+            opacity: 0.5;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
+            letter-spacing: 0.5px;
+            color: #fff;
+            opacity: 0.5;
+        }
+
+        
     </style>
 </head>
 
 <body>
 
+    <div id="aurora"></div>
     <canvas id="snow-canvas"></canvas>
-    <script src="snow.js"></script>
-    <div class="image-wrapper">
-        <img src="under_construction_real.png" alt="Under Construction">
+
+    <div id="foreground">
+        <div class="image-wrapper">
+            <img src="under_construction_real.png" alt="Under Construction">
+        </div>
+        <div class="title">chess ibex</div>
+        <div class="subtitle">...coming soon</div>
     </div>
 
-    <div class="title">chess ibex</div>
-    <div class="subtitle">...coming soon</div>
+    <script>
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let snowflakes = [];
+        let mouse = { x: null, y: null };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        canvas.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        class Snowflake {
+            constructor(layer = 1) {
+                this.reset(layer);
+            }
+            reset(layer = 1) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * -height;
+                this.radius = Math.random() * (10 / layer) + 1;
+                this.speedY = Math.random() * 1.5 * layer + 0.5;
+                this.speedX = Math.random() * 0.6 - 0.3;
+                this.opacity = Math.random() * 0.5 + 0.5;
+                this.layer = layer;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX + Math.sin(this.y * 0.01) * 0.5;
+
+                if (mouse.x !== null) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 200) {
+                        const force = (1 - dist / 200) * 0.15;
+                        const angle = Math.atan2(dy, dx) + Math.PI / 2;
+                        this.x += Math.cos(angle) * force * 15;
+                        this.y += Math.sin(angle) * force * 15;
+                    }
+                }
+
+                if (this.y > height) {
+                    this.reset(this.layer);
+                    this.y = 0;
+                }
+
+                if (this.x > width || this.x < 0) {
+                    this.x = (this.x + width) % width;
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        function createSnowflakes(count, layer) {
+            for (let i = 0; i < count; i++) snowflakes.push(new Snowflake(layer));
+        }
+
+        createSnowflakes(100, 1);
+        createSnowflakes(50, 2);
+        createSnowflakes(25, 3);
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            snowflakes.forEach(flake => {
+                flake.update();
+                flake.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
 
 </body>
 
